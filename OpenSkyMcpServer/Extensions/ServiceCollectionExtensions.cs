@@ -1,5 +1,8 @@
+using System.Net.Http.Headers;
+using Microsoft.Extensions.Options;
 using ModelContextProtocol.AspNetCore;
 using OpenSkyMcpServer.Options;
+using OpenSkyMcpServer.Services;
 
 namespace OpenSkyMcpServer.Extensions;
 
@@ -10,6 +13,7 @@ public static class ServiceCollectionExtensions
         services
             .AddOptions()
             .ConfigureMcpServer()
+            .AddOpenSkyHttpClient()
             ;
         
         return services;
@@ -34,6 +38,19 @@ public static class ServiceCollectionExtensions
                 options.SessionMode = HttpServerSessionMode.Stateless;
             })
             .WithToolsFromAssembly();
+        
+        return services;
+    }
+    
+    private static IServiceCollection AddOpenSkyHttpClient(this IServiceCollection services)
+    {
+        services.AddHttpClient<IOpenSkyHttpService, OpenSkyHttpService>((sp, httpClient) =>
+        {
+            var openSkyOptions = sp.GetRequiredService<IOptions<OpenSkyApiOptions>>().Value;
+            
+            httpClient.BaseAddress = new Uri(openSkyOptions.BaseUrl);
+            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", openSkyOptions.Token);
+        });
         
         return services;
     }
